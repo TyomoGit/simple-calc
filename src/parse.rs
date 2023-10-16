@@ -142,6 +142,8 @@ impl Parser {
                 self.next();
                 self.next();
             }
+
+            self.next();
         }
 
         Some(statements)

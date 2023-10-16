@@ -3,10 +3,17 @@ use std::collections::HashMap;
 use crate::parse::{Expr, Statement};
 use crate::token::Operator;
 
-/// 評価器
+
 pub struct Interpreter {
     global_vars: HashMap<String, f64>,
 
+    // 関数の呼び出し時にスタックに積む
+    //TODO: 関数実装
+    stack: Vec<Context>,
+}
+
+struct Context {
+    vars: HashMap<String, f64>,
 }
 
 impl Interpreter {
@@ -16,7 +23,8 @@ impl Interpreter {
         map.insert(String::from("n"), 100f64);
 
         Interpreter {
-            global_vars: map
+            global_vars: map,
+            stack: Vec::new(),
         }
     }
 

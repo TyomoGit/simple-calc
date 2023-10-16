@@ -2,7 +2,15 @@
 
 use crate::token::Lexer;
 use crate::token::Token;
+use crate::token::Reserved;
 use crate::token::Operator;
+
+#[derive(Debug, Clone)]
+pub enum Statement {
+    Return(Box<Expr>),
+    Print(Box<Expr>),
+    Expr(Box<Expr>),
+}
 
 /// 式
 #[derive(Debug, Clone)]
@@ -123,9 +131,28 @@ impl Parser {
     }
 
     /// 解析を開始する
-    pub fn parse(&mut self) -> Option<Box<Expr>> {
-        self.parse_expr(Precedence::Lowest)
-            .or_else(|| self.parse_statement())
+    pub fn parse(&mut self) -> Option<Vec<Statement>> {
+        let mut statements = Vec::new();
+        
+        while self.current.is_some() {
+            let statement = self.parse_statement()?;
+            statements.push(*statement);
+
+            if self.is_peeking(&Token::NewLine) {
+                self.next();
+                self.next();
+            }
+        }
+
+        Some(statements)
+    }
+
+    pub fn parse_statement(&mut self) -> Option<Box<Statement>> {
+        match self.current.as_ref()? {
+            Token::Reserved(Reserved::Print) => self.parse_print_statement(),
+            Token::Reserved(Reserved::Return) => None,
+            _ => self.parse_expr(Precedence::Lowest).map(|expr| Box::new(Statement::Expr(expr))),
+        }
     }
 
     /// 式を解析する
@@ -143,27 +170,15 @@ impl Parser {
         Some(left)
     }
 
-    pub fn parse_statement(&mut self) -> Option<Box<Expr>> {
-        None
+    pub fn parse_print_statement(&mut self) -> Option<Box<Statement>> {
+        self.next();
+        let expression = self.parse_expr(Precedence::Lowest);
 
-        // match self.current.as_ref()? {
-        //     Token::Return => self.parse_return_statement(),
-        //     _ => None,
-        // }
-    }
-
-    pub fn parse_return_statement(&mut self) -> Option<Box<Expr>> {
-        unimplemented!("parse_return_statement");
-
-        // self.next();
-        // let expression = self.parse_expr(Precedence::Lowest);
-
-        // if self.is_peeking(&Token::Semicolon) {
-        //     self.next();
-        //     expression
-        // } else {
-        //     None
-        // }
+        if self.is_peeking(&Token::NewLine) {
+            expression.map(|expr| Box::new(Statement::Print(expr)))
+        } else {
+            None
+        }
     }
 
     /// 前置演算子式，識別子，数字を解析する

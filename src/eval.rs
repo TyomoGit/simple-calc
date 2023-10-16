@@ -1,22 +1,38 @@
 use std::collections::HashMap;
 
-use crate::parse::Expr;
+use crate::parse::{Expr, Statement};
 use crate::token::Operator;
 
 /// 評価器
-pub struct Evaluator {
+pub struct Interpreter {
     global_vars: HashMap<String, f64>,
 
 }
 
-impl Evaluator {
+impl Interpreter {
     pub fn new() -> Self {
 
         let mut map = HashMap::new();
         map.insert(String::from("n"), 100f64);
 
-        Evaluator {
+        Interpreter {
             global_vars: map
+        }
+    }
+
+    pub fn run(&mut self, statements: &[Statement]) {
+        for statement in statements {
+            match statement {
+                Statement::Expr(expr) => {
+                    self.eval(expr);
+                }
+                Statement::Print(expr) => {
+                    println!("{}", self.eval(expr));
+                }
+                Statement::Return(expr) => {
+                    println!("{}", self.eval(expr));
+                }
+            }
         }
     }
 

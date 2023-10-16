@@ -13,11 +13,11 @@ pub enum Token {
     /// 演算子
     Operator(Operator),
 
-    /// セミコロン
-    Semicolon,
+    /// 予約語
+    Reserved(Reserved),
 
-    // return
-    Return,
+    /// 改行
+    NewLine,
 }
 
 /// 演算子
@@ -69,6 +69,15 @@ pub enum Operator {
     ModAssign,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Reserved {
+    /// print文
+    Print,
+
+    // return
+    Return,
+}
+
 /// 字句解析器
 #[derive(Debug)]
 pub struct Lexer {
@@ -99,7 +108,9 @@ impl Lexer {
         let token = if is_part_of_number(&self.current?) {
             self.number()
         } else {
-            self.operator()
+            self.new_line()
+                .or_else(|| self.reserved()) 
+                .or_else(|| self.operator())
                 .or_else(|| self.identifier())
         };
         self.next();
@@ -111,9 +122,37 @@ impl Lexer {
 
     /// 空白をスキップする
     fn skip_whitespace(&mut self) {
-        while self.current.is_some() && self.current.unwrap().is_whitespace() {
+        while self.current.is_some() && is_space(self.current.unwrap()) {
             self.next();
         }
+    }
+
+    fn new_line(&mut self) -> Option<Token> {
+        if self.current? == '\n' {
+            Some(Token::NewLine)
+        } else {
+            None
+        }
+    }
+
+    fn reserved(&mut self) -> Option<Token> {
+        match self.current? {
+            'p' => self.check_string("print").then_some(Token::Reserved(Reserved::Print)),
+            'r' => self.check_string("return").then_some(Token::Reserved(Reserved::Return)),
+            _ => None,
+        }
+    }
+
+    fn check_string(&mut self, s: &str) -> bool {
+        for (i, char) in s.chars().enumerate() {
+            if self.tokens.get(self.position + i) != Some(&char) {
+                return false;
+            }
+        }
+
+        self.position += s.len() - 1;
+
+        true
     }
 
     /// 数字を読み込む
@@ -194,4 +233,8 @@ impl Lexer {
 /// 数字かどうか
 fn is_part_of_number(c: &char) -> bool {
     c.is_ascii_digit() || *c == '.'
+}
+
+fn is_space(c: char) -> bool {
+    c == ' ' || c == '\t'
 }

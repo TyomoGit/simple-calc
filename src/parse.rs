@@ -138,7 +138,7 @@ impl Parser {
             let statement = self.parse_statement()?;
             statements.push(*statement);
 
-            if self.is_peeking(&Token::NewLine) {
+            if self.is_peek(&Token::NewLine) || self.peeking_eof() {
                 self.next();
                 self.next();
             }
@@ -174,7 +174,9 @@ impl Parser {
         self.next();
         let expression = self.parse_expr(Precedence::Lowest);
 
-        if self.is_peeking(&Token::NewLine) {
+        println!("{:?}", expression);
+
+        if self.is_peek(&Token::NewLine) || self.peeking_eof() {
             expression.map(|expr| Box::new(Statement::Print(expr)))
         } else {
             None
@@ -229,7 +231,7 @@ impl Parser {
         self.next();
         let expression = self.parse_expr(Precedence::Lowest);
 
-        if self.is_peeking(&Token::RParen) {
+        if self.is_peek(&Token::RParen) {
             self.next();
             expression
         } else {
@@ -295,11 +297,15 @@ impl Parser {
     }
 
     /// 次のトークンが引数のトークンと同じかどうかを返す
-    pub fn is_peeking(&self, token: &Token) -> bool {
+    pub fn is_peek(&self, token: &Token) -> bool {
         if self.peek.is_none() {
             false
         } else {
             self.peek.as_ref().unwrap() == token
         }
+    }
+
+    pub fn peeking_eof(&self) -> bool {
+        self.peek.is_none()
     }
 }

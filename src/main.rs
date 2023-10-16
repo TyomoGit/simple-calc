@@ -1,8 +1,8 @@
 use std::{io::{self, Write, Read}, env::args, fs::File};
 
-use crate::{eval::Interpreter, parse::Parser, token::Lexer};
+use crate::{interpreter::Interpreter, parse::Parser, token::Lexer};
 
-mod eval;
+mod interpreter;
 mod parse;
 mod token;
 

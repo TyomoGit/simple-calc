@@ -174,8 +174,6 @@ impl Parser {
         self.next();
         let expression = self.parse_expr(Precedence::Lowest);
 
-        println!("{:?}", expression);
-
         if self.is_peek(&Token::NewLine) || self.peeking_eof() {
             expression.map(|expr| Box::new(Statement::Print(expr)))
         } else {

@@ -5,6 +5,7 @@ use crate::{interpreter::Interpreter, parse::Parser, token::Lexer};
 mod interpreter;
 mod parse;
 mod token;
+mod types;
 
 fn main() {
     let mut interpreter = Interpreter::new();

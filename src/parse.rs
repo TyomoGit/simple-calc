@@ -152,7 +152,7 @@ impl Parser {
     pub fn parse_statement(&mut self) -> Option<Box<Statement>> {
         match self.current.as_ref()? {
             Token::Reserved(Reserved::Print) => self.parse_print_statement(),
-            Token::Reserved(Reserved::Return) => None,
+            Token::Reserved(Reserved::Return) => self.parse_return_statement(),
             _ => self.parse_expr(Precedence::Lowest).map(|expr| Box::new(Statement::Expr(expr))),
         }
     }
@@ -178,6 +178,17 @@ impl Parser {
 
         if self.is_peek(&Token::NewLine) || self.peeking_eof() {
             expression.map(|expr| Box::new(Statement::Print(expr)))
+        } else {
+            None
+        }
+    }
+
+    pub fn parse_return_statement(&mut self) -> Option<Box<Statement>> {
+        self.next();
+        let expression = self.parse_expr(Precedence::Lowest);
+
+        if self.is_peek(&Token::NewLine) || self.peeking_eof() {
+            expression.map(|expr| Box::new(Statement::Return(expr)))
         } else {
             None
         }

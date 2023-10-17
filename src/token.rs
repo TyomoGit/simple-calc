@@ -76,6 +76,30 @@ pub enum Reserved {
 
     // return
     Return,
+
+    // typeof
+    Typeof,
+
+    // if
+    If,
+
+    // else
+    Else,
+
+    // for
+    For,
+
+    // while
+    While,
+
+    // break
+    Break,
+
+    // continue
+    Continue,
+
+    // function
+    Fn,
 }
 
 /// 字句解析器

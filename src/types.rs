@@ -2,6 +2,9 @@ use std::fmt::Display;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, BitAnd, BitOr};
 use std::rc::Rc;
 
+pub trait Object {
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Primitive {
     Number(f64),
@@ -24,7 +27,15 @@ impl Add for &Primitive {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Primitive::Number(l), Primitive::Number(r)) => Primitive::Number(l + r),
-            (Primitive::String(l), Primitive::String(r)) => Primitive::String((l.to_string() + r).into()),
+            (Primitive::String(l), Primitive::String(r)) => {
+                Primitive::String(
+                    Rc::clone(l)
+                        .chars()
+                        .chain(Rc::clone(r).chars())
+                        .collect::<String>()
+                        .into(),
+                )
+            },
             _ => panic!("invalid type"),
         }
     }

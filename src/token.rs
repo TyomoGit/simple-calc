@@ -37,6 +37,8 @@ pub enum Operator {
     Mod,
     /// ==
     Equal,
+    /// ===
+    ObjectEqual,
     /// !=
     NotEqual,
     /// >
@@ -161,13 +163,17 @@ impl Lexer {
 
     fn reserved(&mut self) -> Option<Token> {
         match self.current? {
-            'p' => self.check_string("print").then_some(Token::Reserved(Reserved::Print)),
-            'r' => self.check_string("return").then_some(Token::Reserved(Reserved::Return)),
+            'p' => self.check_string_space("print ").then_some(Token::Reserved(Reserved::Print)),
+            'r' => self.check_string_space("return ").then_some(Token::Reserved(Reserved::Return)),
+            'i' => self.check_string_space("if ").then_some(Token::Reserved(Reserved::If)),
+            'f' => self.check_string_space("for ").then_some(Token::Reserved(Reserved::For))
+                .or_else(|| self.check_string_space("fn ").then_some(Token::Reserved(Reserved::Fn))),
+            't' => self.check_string_space("typeof ").then_some(Token::Reserved(Reserved::Typeof)),
             _ => None,
         }
     }
 
-    fn check_string(&mut self, s: &str) -> bool {
+    fn check_string_space(&mut self, s: &str) -> bool {
         for (i, char) in s.chars().enumerate() {
             if self.tokens.get(self.position + i) != Some(&char) {
                 return false;
@@ -204,7 +210,10 @@ impl Lexer {
             '(' => Some(Token::LParen),
             ')' => Some(Token::RParen),
             '%' => self.tokenize_operator('=', Token::Operator(Operator::ModAssign), Token::Operator(Operator::Mod)),
-            '=' => self.tokenize_operator('=', Token::Operator(Operator::Equal), Token::Operator(Operator::Assign)),
+            '=' => {
+                self.check_string_space("===").then_some(Token::Operator(Operator::ObjectEqual))
+                .or_else(|| self.tokenize_operator('=', Token::Operator(Operator::Equal), Token::Operator(Operator::Assign)))
+            },
             '>' => self.tokenize_operator('=', Token::Operator(Operator::GreaterThanEqual), Token::Operator(Operator::GreaterThan)),
             '<' => self.tokenize_operator('=', Token::Operator(Operator::LessThanEqual), Token::Operator(Operator::LessThan)),
             '&' => self.tokenize_operator('&', Token::Operator(Operator::LogicalAnd), Token::Operator(Operator::BitAnd)),
@@ -241,7 +250,7 @@ impl Lexer {
         if self.current? != '"' {
             return None;
         }
-        
+
         let mut string_chars = vec![];
 
         while self.peek().is_some() && self.peek() != Some(&'"') {

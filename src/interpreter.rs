@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::process::exit;
+use std::rc::Rc;
 
 use crate::parse::{Expr, Statement};
 use crate::token::Operator;
@@ -70,7 +71,7 @@ impl Interpreter {
                 // }
                 unimplemented!("postfix operator is not implemented")
             },
-            Expr::String(s) => Primitive::String(s.clone().into()),
+            Expr::String(s) => Primitive::String(s.value.clone()),
         }
     }
 
@@ -108,6 +109,17 @@ impl Interpreter {
             Operator::Div => l_val / r_val,
             Operator::Mod => l_val % r_val,
             Operator::Equal => (l_val == r_val).into(),
+            Operator::ObjectEqual => {
+                if let Primitive::String(l) = l_val {
+                    if let Primitive::String(r) = r_val {
+                        Rc::ptr_eq(l, r).into()
+                    } else {
+                        panic!("invalid type")
+                    }
+                } else {
+                    panic!("invalid type")
+                }
+            }
             Operator::NotEqual => (l_val != r_val).into(),
             Operator::GreaterThan => (l_val > r_val).into(),
             Operator::GreaterThanEqual => (l_val >= r_val).into(),

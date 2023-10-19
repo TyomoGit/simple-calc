@@ -1,4 +1,4 @@
-// use std::mem;
+use std::rc::Rc;
 
 use crate::token::Lexer;
 use crate::token::Token;
@@ -12,6 +12,11 @@ pub enum Statement {
     Expr(Box<Expr>),
 }
 
+#[derive(Debug, Clone)]
+pub struct ReferenceType<T> {
+    pub value: Rc<T>
+}
+
 /// 式
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -22,7 +27,7 @@ pub enum Expr {
     Number(f64),
 
     /// 文字列
-    String(String),
+    String(ReferenceType<String>),
 
     /// 前置演算子
     PrefixExpr {
@@ -86,18 +91,22 @@ pub enum Precedence {
 impl From<&Token> for Precedence {
     /// トークンの優先度を返す
     fn from(value: &Token) -> Self {
-        match value {
-            Token::Operator(Operator::Assign) | Token::Operator(Operator::AddAssign) | Token::Operator(Operator::SubAssign) | Token::Operator(Operator::MulAssign) | Token::Operator(Operator::DivAssign) | Token::Operator(Operator::ModAssign) => Precedence::Assign,
-            Token::Operator(Operator::BitOr) => Precedence::BitOr,
-            Token::Operator(Operator::BitAnd) => Precedence::BitAnd,
-            Token::Operator(Operator::LogicalOr) => Precedence::LogicalOr,
-            Token::Operator(Operator::LogicalAnd) => Precedence::LogicalAnd,
-            Token::Operator(Operator::Equal) | Token::Operator(Operator::NotEqual) => Precedence::Equality,
-            Token::Operator(Operator::GreaterThan) | Token::Operator(Operator::GreaterThanEqual) | Token::Operator(Operator::LessThan) | Token::Operator(Operator::LessThanEqual) => Precedence::Compare,
-            Token::Operator(Operator::Plus) | Token::Operator(Operator::Minus) => Precedence::Sum,
-            Token::Operator(Operator::Div) | Token::Operator(Operator::Mul) | Token::Operator(Operator::Mod) => Precedence::Product,
-            Token::Operator(Operator::Not) => Precedence::Prefix,
-            _ => Precedence::Lowest,
+        let Token::Operator(operator) = value else {
+            return Precedence::Lowest;
+        };
+
+        match operator {
+            Operator::Assign | Operator::AddAssign | Operator::SubAssign | Operator::MulAssign | Operator::DivAssign | Operator::ModAssign => Precedence::Assign,
+            Operator::BitOr => Precedence::BitOr,
+            Operator::BitAnd => Precedence::BitAnd,
+            Operator::LogicalOr => Precedence::LogicalOr,
+            Operator::LogicalAnd => Precedence::LogicalAnd,
+            Operator::Equal | Operator::NotEqual => Precedence::Equality,
+            Operator::GreaterThan | Operator::GreaterThanEqual | Operator::LessThan | Operator::LessThanEqual | Operator::ObjectEqual => Precedence::Compare,
+            Operator::Plus | Operator::Minus => Precedence::Sum,
+            Operator::Div | Operator::Mul | Operator::Mod => Precedence::Product,
+            Operator::Not => Precedence::Prefix,
+
         }
     }
 }
@@ -244,7 +253,11 @@ impl Parser {
     /// 文字列を解析する
     pub fn parse_string(&mut self) -> Option<Box<Expr>> {
         if let Some(Token::String(s)) = self.current.as_ref() {
-             Some(Box::new(Expr::String(s.to_owned())))
+             Some(Box::new(Expr::String(
+                    ReferenceType {
+                        value: s.clone().into(),
+                    }
+             )))
         } else {
             None
         }
@@ -279,16 +292,17 @@ impl Parser {
     /// 中置演算子式の場合に式を解析する
     pub fn parse_infix(&mut self, left: Box<Expr>) -> Option<Box<Expr>> {
         let token = self.current.as_ref()?;
+        let Token::Operator(operator) = token else {
+            return Some(left);
+        };
 
-        match token {
-            Token::Operator(Operator::Plus) | Token::Operator(Operator::Minus) | Token::Operator(Operator::Mul) | Token::Operator(Operator::Div) | Token::Operator(Operator::Mod) 
-            | Token::Operator(Operator::Equal) | Token::Operator(Operator::NotEqual)
-            | Token::Operator(Operator::GreaterThan) | Token::Operator(Operator::GreaterThanEqual) | Token::Operator(Operator::LessThan) | Token::Operator(Operator::LessThanEqual) 
-            | Token::Operator(Operator::LogicalAnd) | Token::Operator(Operator::LogicalOr)
-            | Token::Operator(Operator::Assign) | Token::Operator(Operator::AddAssign) | Token::Operator(Operator::SubAssign) | Token::Operator(Operator::MulAssign) | Token::Operator(Operator::DivAssign) | Token::Operator(Operator::ModAssign)
-            | Token::Operator(Operator::BitAnd) | Token::Operator(Operator::BitOr) => {
-                self.parse_infix_expr(left)
-            }
+        match operator {
+            Operator::Plus | Operator::Minus | Operator::Mul | Operator::Div | Operator::Mod
+            | Operator::Equal | Operator::NotEqual
+            | Operator::GreaterThan | Operator::GreaterThanEqual | Operator::LessThan | Operator::LessThanEqual | Operator::ObjectEqual
+            | Operator::LogicalAnd | Operator::LogicalOr
+            | Operator::Assign | Operator::AddAssign | Operator::SubAssign | Operator::MulAssign | Operator::DivAssign | Operator::ModAssign
+            | Operator::BitAnd | Operator::BitOr => self.parse_infix_expr(left),
             _ => Some(left),
         }
     }

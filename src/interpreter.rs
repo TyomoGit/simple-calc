@@ -21,8 +21,6 @@ impl Context {
 pub struct Interpreter {
     global_context: Context,
 
-    heap: Vec<Primitive>,
-
     // 関数の呼び出し時にスタックに積む
     //TODO: 関数実装
     stack: Vec<Context>,
@@ -32,7 +30,6 @@ impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
             global_context: Context::new(),
-            heap: Vec::new(),
             stack: Vec::new(),
         }
     }
@@ -73,6 +70,7 @@ impl Interpreter {
                 // }
                 unimplemented!("postfix operator is not implemented")
             },
+            Expr::String(s) => Primitive::String(s.clone().into()),
         }
     }
 
@@ -151,6 +149,7 @@ impl Interpreter {
         if let Expr::Identifier(name) = left {
             self.global_context.vars.insert(name.clone(), value.clone());
         } else {
+            println!("{:?}", left);
             panic!("invalid left hand side of assignment")
         }
     }

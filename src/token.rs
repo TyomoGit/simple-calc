@@ -3,8 +3,10 @@
 pub enum Token {
     /// 識別子
     Identifier(String),
-    /// 数字
+    /// 数値リテラル
     Number(f64),
+    /// 文字列リテラル
+    String(String),
     /// (
     LParen,
     /// )
@@ -129,14 +131,12 @@ impl Lexer {
     pub fn token(&mut self) -> Option<Token> {
         self.skip_whitespace();
 
-        let token = if is_part_of_number(&self.current?) {
-            self.number()
-        } else {
-            self.new_line()
+        let token = self.number()
+                .or_else(|| self.new_line())
                 .or_else(|| self.reserved()) 
                 .or_else(|| self.operator())
-                .or_else(|| self.identifier())
-        };
+                .or_else(|| self.string_literal())
+                .or_else(|| self.identifier());
         self.next();
 
         // println!("{:?}, ", token);
@@ -234,6 +234,24 @@ impl Lexer {
         }
 
         Some(Token::Identifier(String::from_iter(identifier_chars)))
+    }
+
+    /// 文字列リテラルを読み込む
+    fn string_literal(&mut self) -> Option<Token> {
+        if self.current? != '"' {
+            return None;
+        }
+        
+        let mut string_chars = vec![];
+
+        while self.peek().is_some() && self.peek() != Some(&'"') {
+            self.next();
+            string_chars.push(self.current?);
+        }
+
+        self.next();
+
+        Some(Token::String(String::from_iter(string_chars)))
     }
 
     /// positionを進め，

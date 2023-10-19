@@ -21,6 +21,9 @@ pub enum Expr {
     /// 数字
     Number(f64),
 
+    /// 文字列
+    String(String),
+
     /// 前置演算子
     PrefixExpr {
         operator: Operator,
@@ -202,6 +205,7 @@ impl Parser {
                 Some(Box::new(Expr::Identifier(name.clone())))
             }
             Token::Number(_) => self.parse_number(),
+            Token::String(_) => self.parse_string(),
             Token::LParen => self.parse_grouped_expr(),
             _ => None,
         }
@@ -232,6 +236,15 @@ impl Parser {
     pub fn parse_number(&mut self) -> Option<Box<Expr>> {
         if let Some(Token::Number(n)) = self.current {
              Some(Box::new(Expr::Number(n)))
+        } else {
+            None
+        }
+    }
+
+    /// 文字列を解析する
+    pub fn parse_string(&mut self) -> Option<Box<Expr>> {
+        if let Some(Token::String(s)) = self.current.as_ref() {
+             Some(Box::new(Expr::String(s.to_owned())))
         } else {
             None
         }

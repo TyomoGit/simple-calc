@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::fmt::Display;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, BitAnd, BitOr};
 use std::rc::Rc;
@@ -6,7 +7,7 @@ use std::rc::Rc;
 pub enum Primitive {
     Number(f64),
     Boolean(bool),
-    String(Rc<String>),
+    String(Rc<RefCell<String>>),
 }
 
 impl Display for Primitive {
@@ -14,7 +15,7 @@ impl Display for Primitive {
         match self {
             Primitive::Number(n) => write!(f, "{}", n),
             Primitive::Boolean(b) => write!(f, "{}", b),
-            Primitive::String(s) => write!(f, "{}", s),
+            Primitive::String(s) => write!(f, "{}", s.borrow()),
         }
     }
 }
@@ -24,7 +25,9 @@ impl Add for &Primitive {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Primitive::Number(l), Primitive::Number(r)) => Primitive::Number(l + r),
-            (Primitive::String(l), Primitive::String(r)) => Primitive::String((l.to_string() + r).into()),
+            (Primitive::String(l), Primitive::String(r)) => {
+                Primitive::String(Rc::new(RefCell::new(format!("{}{}", l.borrow(), r.borrow()))))
+            },
             _ => panic!("invalid type"),
         }
     }

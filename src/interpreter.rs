@@ -1,5 +1,7 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::process::exit;
+use std::rc::Rc;
 
 use crate::parse::{Expr, Statement};
 use crate::token::Operator;
@@ -70,7 +72,7 @@ impl Interpreter {
                 // }
                 unimplemented!("postfix operator is not implemented")
             },
-            Expr::String(s) => Primitive::String(s.clone().into()),
+            Expr::String(s) => Primitive::String(Rc::new(RefCell::new(s.clone()))),
         }
     }
 

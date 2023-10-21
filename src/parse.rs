@@ -4,17 +4,13 @@ use crate::token::Lexer;
 use crate::token::Token;
 use crate::token::Reserved;
 use crate::token::Operator;
+use crate::types::Reference;
 
 #[derive(Debug, Clone)]
 pub enum Statement {
     Return(Box<Expr>),
     Print(Box<Expr>),
     Expr(Box<Expr>),
-}
-
-#[derive(Debug, Clone)]
-pub struct ReferenceType<T> {
-    pub value: Rc<T>
 }
 
 /// 式
@@ -27,7 +23,7 @@ pub enum Expr {
     Number(f64),
 
     /// 文字列
-    String(ReferenceType<String>),
+    String(String),
 
     /// 前置演算子
     PrefixExpr {
@@ -254,9 +250,7 @@ impl Parser {
     pub fn parse_string(&mut self) -> Option<Box<Expr>> {
         if let Some(Token::String(s)) = self.current.as_ref() {
              Some(Box::new(Expr::String(
-                    ReferenceType {
-                        value: s.clone().into(),
-                    }
+                    s.clone()
              )))
         } else {
             None

@@ -9,12 +9,11 @@ mod types;
 
 fn main() {
     let mut interpreter = Interpreter::new();
-    let file_path = args().nth(1);
-    if let Some(file_path) = file_path {
-        run_file(&mut interpreter, &file_path);
-    } else {
-        repl(&mut interpreter);
-    }
+    let Some(file_path) = args().nth(1) else {
+        panic!("no file path");
+    };
+    run_file(&mut interpreter, &file_path);
+    
 }
 
 fn run(interpreter: &mut Interpreter, code: &str) {
@@ -37,21 +36,21 @@ fn run_file(interpreter: &mut Interpreter, file_path: &str) {
     run(interpreter, &code);
 }
 
-/// 対話型
-fn repl(interpreter: &mut Interpreter) {
-    loop {
-        print!(">> ");
-        io::stdout().flush().unwrap();
+///// 対話型
+// fn repl(interpreter: &mut Interpreter) {
+//     loop {
+//         print!(">> ");
+//         io::stdout().flush().unwrap();
 
-        let mut code = String::new();
-        io::stdin()
-            .read_line(&mut code)
-            .expect("failed to read line");
+//         let mut code = String::new();
+//         io::stdin()
+//             .read_line(&mut code)
+//             .expect("failed to read line");
 
-        if code == "exit\n" {
-            break;
-        }
+//         if code == "exit\n" {
+//             break;
+//         }
 
-        run(interpreter, &code);
-    }
-}
+//         run(interpreter, &code);
+//     }
+// }

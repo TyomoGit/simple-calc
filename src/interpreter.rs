@@ -35,6 +35,15 @@ impl Interpreter {
         }
     }
 
+    // TODO: こっちをrunにする
+    fn run_block(&mut self, statements: Statement) {
+        let Statement::Block(statements) = statements else {
+            panic!("invalid type")
+        };
+
+        self.run(&statements);
+    }
+
     pub fn run(&mut self, statements: &[Statement]) {
         for statement in statements {
             match statement {
@@ -48,6 +57,21 @@ impl Interpreter {
                     let code = self.eval(expr);
                     exit(code.into());
                 }
+                Statement::Block(statements) => self.run(statements),
+
+                Statement::If { condition, block, else_block } => {
+                    let condition = self.eval(condition);
+                    let Primitive::Boolean(condition) = condition else {
+                        panic!("invalid type")
+                    };
+
+                    if condition {
+                        self.run_block(*block.to_owned());
+                    } else if let Some(else_block) = else_block {
+                        self.run_block(*else_block.to_owned());
+                    }
+                }
+                
             }
         }
     }

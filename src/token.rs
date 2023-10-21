@@ -7,10 +7,15 @@ pub enum Token {
     Number(f64),
     /// 文字列リテラル
     String(String),
+
     /// (
     LParen,
     /// )
     RParen,
+    /// {
+    LBrace,
+    /// }
+    RBrace,
 
     /// 演算子
     Operator(Operator),
@@ -135,6 +140,7 @@ impl Lexer {
 
         let token = self.number()
                 .or_else(|| self.new_line())
+                .or_else(|| self.paren())
                 .or_else(|| self.reserved()) 
                 .or_else(|| self.operator())
                 .or_else(|| self.string_literal())
@@ -161,19 +167,26 @@ impl Lexer {
         }
     }
 
+    /// 予約語を読み込む
     fn reserved(&mut self) -> Option<Token> {
         match self.current? {
-            'p' => self.check_string_space("print ").then_some(Token::Reserved(Reserved::Print)),
-            'r' => self.check_string_space("return ").then_some(Token::Reserved(Reserved::Return)),
-            'i' => self.check_string_space("if ").then_some(Token::Reserved(Reserved::If)),
-            'f' => self.check_string_space("for ").then_some(Token::Reserved(Reserved::For))
-                .or_else(|| self.check_string_space("fn ").then_some(Token::Reserved(Reserved::Fn))),
-            't' => self.check_string_space("typeof ").then_some(Token::Reserved(Reserved::Typeof)),
+            'p' => self.check_string_with_space("print").then_some(Token::Reserved(Reserved::Print)),
+            'r' => self.check_string_with_space("return").then_some(Token::Reserved(Reserved::Return)),
+            'i' => self.check_string_with_space("if").then_some(Token::Reserved(Reserved::If)),
+            'e' => self.check_string("else").then_some(Token::Reserved(Reserved::Else)),
+            'f' => self.check_string_with_space("for").then_some(Token::Reserved(Reserved::For))
+                .or_else(|| self.check_string_with_space("fn").then_some(Token::Reserved(Reserved::Fn))),
+            't' => self.check_string_with_space("typeof").then_some(Token::Reserved(Reserved::Typeof)),
             _ => None,
         }
     }
 
-    fn check_string_space(&mut self, s: &str) -> bool {
+    fn check_string_with_space(&mut self, s: &str) -> bool {
+        let s_with_space = s.to_owned() + " ";
+        self.check_string(&s_with_space)
+    }
+
+    fn check_string(&mut self, s: &str) -> bool {
         for (i, char) in s.chars().enumerate() {
             if self.tokens.get(self.position + i) != Some(&char) {
                 return false;
@@ -200,18 +213,30 @@ impl Lexer {
             .map(Token::Number)
     }
 
+    /// 括弧を読み込む
+    fn paren(&mut self) -> Option<Token> {
+        match self.current? {
+            '(' => Some(Token::LParen),
+            ')' => Some(Token::RParen),
+            '{' => Some(Token::LBrace),
+            '}' => Some(Token::RBrace),
+            _ => None,
+        }
+    }
+
     /// 演算子を読み込む
     fn operator(&mut self) -> Option<Token> {
         match self.current? {
-            '+' => self.tokenize_operator('=', Token::Operator(Operator::AddAssign), Token::Operator(Operator::Plus)),
+            // '+' => self.tokenize_operator('=', Token::Operator(Operator::AddAssign), Token::Operator(Operator::Plus)),
+            '+' => self.check_string("+=")
+                .then_some(Token::Operator(Operator::AddAssign))
+                .or(Some(Token::Operator(Operator::Plus))),
             '-' => self.tokenize_operator('=', Token::Operator(Operator::SubAssign), Token::Operator(Operator::Minus)),
             '*' => self.tokenize_operator('=', Token::Operator(Operator::MulAssign), Token::Operator(Operator::Mul)),
             '/' => self.tokenize_operator('=', Token::Operator(Operator::DivAssign), Token::Operator(Operator::Div)),
-            '(' => Some(Token::LParen),
-            ')' => Some(Token::RParen),
             '%' => self.tokenize_operator('=', Token::Operator(Operator::ModAssign), Token::Operator(Operator::Mod)),
             '=' => {
-                self.check_string_space("===").then_some(Token::Operator(Operator::ObjectEqual))
+                self.check_string("===").then_some(Token::Operator(Operator::ObjectEqual))
                 .or_else(|| self.tokenize_operator('=', Token::Operator(Operator::Equal), Token::Operator(Operator::Assign)))
             },
             '>' => self.tokenize_operator('=', Token::Operator(Operator::GreaterThanEqual), Token::Operator(Operator::GreaterThan)),

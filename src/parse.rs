@@ -10,6 +10,12 @@ pub enum Statement {
     Return(Box<Expr>),
     Print(Box<Expr>),
     Expr(Box<Expr>),
+    Block(Vec<Statement>),
+    If {
+        condition: Box<Expr>,
+        block: Box<Statement>,
+        else_block: Option<Box<Statement>>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -150,10 +156,7 @@ impl Parser {
             let statement = self.parse_statement()?;
             statements.push(*statement);
 
-            if self.is_peek(&Token::NewLine) || self.peeking_eof() {
-                self.next();
-                self.next();
-            }
+            self.skip_newline_eof();
 
             self.next();
         }
@@ -161,12 +164,39 @@ impl Parser {
         Some(statements)
     }
 
+    fn skip_newline_eof(&mut self) {
+        while self.is_peek(&Token::NewLine) || self.peeking_eof() {
+            self.next();
+            if self.current.is_none() { break; }
+        }
+    }
+
     pub fn parse_statement(&mut self) -> Option<Box<Statement>> {
         match self.current.as_ref()? {
             Token::Reserved(Reserved::Print) => self.parse_print_statement(),
             Token::Reserved(Reserved::Return) => self.parse_return_statement(),
+            Token::Reserved(Reserved::If) => self.parse_if_statement(),
             _ => self.parse_expr(Precedence::Lowest).map(|expr| Box::new(Statement::Expr(expr))),
         }
+    }
+
+    fn parse_block(&mut self) -> Option<Box<Statement>> {
+        if self.current.as_ref()? != &Token::LBrace { return None; }
+
+        self.skip_newline_eof();
+        self.next();
+
+        let mut statements = Vec::new();
+        while *self.current.as_ref()? != Token::RBrace && !self.is_peek(&Token::RBrace) && !self.peeking_eof() {
+            let statement = self.parse_statement()?;
+
+            statements.push(*statement);
+
+            self.skip_newline_eof();
+            self.next();
+        }
+
+        Some(Box::new(Statement::Block(statements)))
     }
 
     /// 式を解析する
@@ -184,18 +214,22 @@ impl Parser {
         Some(left)
     }
 
-    pub fn parse_print_statement(&mut self) -> Option<Box<Statement>> {
+    fn parse_print_statement(&mut self) -> Option<Box<Statement>> {
+        if self.current.as_ref()? != &Token::Reserved(Reserved::Print) { return None; }
         self.next();
+
         let expression = self.parse_expr(Precedence::Lowest);
 
-        if self.is_peek(&Token::NewLine) || self.peeking_eof() {
+        if self.is_peek(&Token::NewLine) || self.peeking_eof() || self.is_peek(&Token::RBrace) {
             expression.map(|expr| Box::new(Statement::Print(expr)))
         } else {
             None
         }
     }
 
-    pub fn parse_return_statement(&mut self) -> Option<Box<Statement>> {
+    fn parse_return_statement(&mut self) -> Option<Box<Statement>> {
+        if self.current.as_ref()? != &Token::Reserved(Reserved::Return) { return None; }
+
         self.next();
         let expression = self.parse_expr(Precedence::Lowest);
 
@@ -204,6 +238,31 @@ impl Parser {
         } else {
             None
         }
+    }
+
+    fn parse_if_statement(&mut self) -> Option<Box<Statement>> {
+        if self.current.as_ref()? != &Token::Reserved(Reserved::If) { return None; }
+
+        self.next();
+
+        let condition = self.parse_expr(Precedence::Lowest);
+
+        self.next();
+
+        let block = self.parse_block()?;
+
+        let mut else_block: Option<Box<Statement>> = None;
+
+        if self.is_peek(&Token::Reserved(Reserved::Else)) {
+            self.next();
+            else_block = self.parse_block();
+        }
+
+        Some(Box::new(Statement::If {
+            condition: condition?,
+            block,
+            else_block,
+        }))
     }
 
     /// 前置演算子式，識別子，数字を解析する

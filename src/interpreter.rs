@@ -4,10 +4,10 @@ use std::rc::Rc;
 
 use crate::parse::{Expr, Statement};
 use crate::token::Operator;
-use crate::types::{Primitive, LogicalAnd, LogicalOr, Type};
+use crate::types::{Primitive, LogicalAnd, LogicalOr};
 
 struct Context {
-    pub vars: HashMap<String, Type>,
+    pub vars: HashMap<String, Primitive>,
 }
 
 impl Context {
@@ -53,7 +53,7 @@ impl Interpreter {
     }
 
     /// 式を評価する
-    pub fn eval(&mut self, expr: &Expr) -> Type {
+    pub fn eval(&mut self, expr: &Expr) -> Primitive {
         match expr {
             Expr::Identifier(name) => self.eval_identifier(name),
             Expr::Number(n) => Primitive::Number(*n),
@@ -71,10 +71,7 @@ impl Interpreter {
                 // }
                 unimplemented!("postfix operator is not implemented")
             },
-            // Expr::String(s) => Primitive::String(s.value.clone()),
-            Expr::String(s) => Type::Reference(
-                
-            )
+            Expr::String(s) => Primitive::String(s.value.clone()),
         }
     }
 
@@ -83,6 +80,7 @@ impl Interpreter {
         match value {
             Primitive::Number(n) => Primitive::Number(*n),
             Primitive::Boolean(b) => Primitive::Boolean(*b),
+            Primitive::String(s) => Primitive::String(s.clone()),
             _ => Primitive::Number(0.0)
         }
     }
@@ -130,7 +128,7 @@ impl Interpreter {
             Operator::LogicalAnd => l_val.logicaland(&r_val),
             Operator::LogicalOr => l_val.logicalor(&r_val),
             Operator::BitAnd => l_val & r_val,
-            Operator::BitOr => l_val | r_val,
+            Operator::BitOr => l_val| r_val,
             Operator::Assign => {
                 self.assign(left, r_val);
                 r_val.clone()

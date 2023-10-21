@@ -1,69 +1,15 @@
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, BitAnd, BitOr};
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
-pub enum Type {
-    Primitive(Primitive),
-    Reference(Rc<Reference>),
-    Array(),
-}
-
-pub trait TypeName {
-    fn type_name(&self) -> &'static str;
+pub trait Object {
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Primitive {
     Number(f64),
     Boolean(bool),
-}
-
-#[derive(Debug, Clone)]
-pub struct Reference {
-    pub name: String,
-    pub field: HashMap<String, Box<Type>>,
-}
-
-impl Reference {
-    // fn new_string(content: &str) -> Self {
-    //     let mut field = HashMap::new();
-    //     field.insert("value", )
-    // }
-
-    fn new_array() -> Self {
-        let mut field = HashMap::new();
-        field.insert("length".to_string(), Box::new(Type::Primitive(Primitive::Number(0.0))));
-        Reference {
-            name: "Array".to_string(),
-            field,
-        }
-    }
-}
-
-impl TypeName for Type {
-    fn type_name(&self) -> &'static str {
-        match self {
-            Type::Primitive(p) => p.type_name(),
-            Type::Reference(r) => r.type_name(),
-        }
-    }
-}
-
-impl TypeName for Primitive {
-    fn type_name(&self) -> &'static str {
-        match self {
-            Primitive::Number(_) => "number",
-            Primitive::Boolean(_) => "boolean",
-        }
-    }
-}
-
-impl TypeName for Reference {
-    fn type_name(&self) -> &'static str {
-        self.name.as_str()
-    }
+    String(Rc<String>),
 }
 
 impl Display for Primitive {
@@ -71,6 +17,7 @@ impl Display for Primitive {
         match self {
             Primitive::Number(n) => write!(f, "{}", n),
             Primitive::Boolean(b) => write!(f, "{}", b),
+            Primitive::String(s) => write!(f, "{}", s),
         }
     }
 }
@@ -80,6 +27,15 @@ impl Add for &Primitive {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Primitive::Number(l), Primitive::Number(r)) => Primitive::Number(l + r),
+            (Primitive::String(l), Primitive::String(r)) => {
+                Primitive::String(
+                    Rc::clone(l)
+                        .chars()
+                        .chain(Rc::clone(r).chars())
+                        .collect::<String>()
+                        .into(),
+                )
+            },
             _ => panic!("invalid type"),
         }
     }

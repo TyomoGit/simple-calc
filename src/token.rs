@@ -274,6 +274,7 @@ impl Lexer {
         }
     }
 
+    /// 演算子の候補を受け取り，トークンを返す
     fn tokenize_operator(&mut self, candidates: &[&'static str]) -> Option<Token> {
         for candidate in candidates {
             if self.check_string(candidate) {
@@ -283,16 +284,6 @@ impl Lexer {
 
         None
     }
-
-    /// 2文字以下の演算子を読み込む
-    // fn tokenize_operator(&mut self, if_peek: char, matched: Token, not_matched: Token) -> Option<Token> {
-    //     if self.is_peeking(&if_peek) {
-    //         self.next();
-    //         Some(matched)
-    //     } else {
-    //         Some(not_matched)
-    //     }
-    // }
 
     /// 識別子を読み込む
     fn identifier(&mut self) -> Option<Token> {

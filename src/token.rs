@@ -78,6 +78,38 @@ pub enum Operator {
     ModAssign,
 }
 
+impl From<&str> for Operator {
+    fn from(s: &str) -> Self {
+        match s {
+            "+" => Operator::Plus,
+            "-" => Operator::Minus,
+            "*" => Operator::Mul,
+            "/" => Operator::Div,
+            "%" => Operator::Mod,
+            "==" => Operator::Equal,
+            "===" => Operator::ObjectEqual,
+            "!=" => Operator::NotEqual,
+            ">" => Operator::GreaterThan,
+            ">=" => Operator::GreaterThanEqual,
+            "<" => Operator::LessThan,
+            "<=" => Operator::LessThanEqual,
+            "&&" => Operator::LogicalAnd,
+            "||" => Operator::LogicalOr,
+            "!" => Operator::Not,
+            "&" => Operator::BitAnd,
+            "|" => Operator::BitOr,
+            "=" => Operator::Assign,
+            "+=" => Operator::AddAssign,
+            "-=" => Operator::SubAssign,
+            "*=" => Operator::MulAssign,
+            "/=" => Operator::DivAssign,
+            "%=" => Operator::ModAssign,
+            _ => panic!("{} is not operator", s),
+        }
+    }
+    
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Reserved {
     /// print文
@@ -147,7 +179,7 @@ impl Lexer {
                 .or_else(|| self.identifier());
         self.next();
 
-        // println!("{:?}, ", token);
+        // dbg!(token.clone());
 
         token
     }
@@ -227,36 +259,40 @@ impl Lexer {
     /// 演算子を読み込む
     fn operator(&mut self) -> Option<Token> {
         match self.current? {
-            // '+' => self.tokenize_operator('=', Token::Operator(Operator::AddAssign), Token::Operator(Operator::Plus)),
-            '+' => self.check_string("+=")
-                .then_some(Token::Operator(Operator::AddAssign))
-                .or(Some(Token::Operator(Operator::Plus))),
-            '-' => self.tokenize_operator('=', Token::Operator(Operator::SubAssign), Token::Operator(Operator::Minus)),
-            '*' => self.tokenize_operator('=', Token::Operator(Operator::MulAssign), Token::Operator(Operator::Mul)),
-            '/' => self.tokenize_operator('=', Token::Operator(Operator::DivAssign), Token::Operator(Operator::Div)),
-            '%' => self.tokenize_operator('=', Token::Operator(Operator::ModAssign), Token::Operator(Operator::Mod)),
-            '=' => {
-                self.check_string("===").then_some(Token::Operator(Operator::ObjectEqual))
-                .or_else(|| self.tokenize_operator('=', Token::Operator(Operator::Equal), Token::Operator(Operator::Assign)))
-            },
-            '>' => self.tokenize_operator('=', Token::Operator(Operator::GreaterThanEqual), Token::Operator(Operator::GreaterThan)),
-            '<' => self.tokenize_operator('=', Token::Operator(Operator::LessThanEqual), Token::Operator(Operator::LessThan)),
-            '&' => self.tokenize_operator('&', Token::Operator(Operator::LogicalAnd), Token::Operator(Operator::BitAnd)),
-            '|' => self.tokenize_operator('|', Token::Operator(Operator::LogicalOr), Token::Operator(Operator::BitOr)),
-            '!' => self.tokenize_operator('=', Token::Operator(Operator::NotEqual), Token::Operator(Operator::Not)),
+            '+' => self.tokenize_operator(&["+=", "+"]),
+            '-' => self.tokenize_operator(&["-=", "-"]),
+            '*' => self.tokenize_operator(&["*=", "*"]),
+            '/' => self.tokenize_operator(&["/=", "/"]),
+            '%' => self.tokenize_operator(&["%=", "%"]),
+            '=' => self.tokenize_operator(&["===", "==", "="]),
+            '>' => self.tokenize_operator(&[">=", ">"]),
+            '<' => self.tokenize_operator(&["<=", "<"]),
+            '&' => self.tokenize_operator(&["&&", "&"]),
+            '|' => self.tokenize_operator(&["||", "|"]),
+            '!' => self.tokenize_operator(&["!=", "!"]),
             _ => None,
         }
     }
 
-    /// 2文字以下の演算子を読み込む
-    fn tokenize_operator(&mut self, if_peek: char, matched: Token, not_matched: Token) -> Option<Token> {
-        if self.is_peeking(&if_peek) {
-            self.next();
-            Some(matched)
-        } else {
-            Some(not_matched)
+    fn tokenize_operator(&mut self, candidates: &[&'static str]) -> Option<Token> {
+        for candidate in candidates {
+            if self.check_string(candidate) {
+                return Some(Token::Operator(Operator::from(*candidate)));
+            }
         }
+
+        None
     }
+
+    /// 2文字以下の演算子を読み込む
+    // fn tokenize_operator(&mut self, if_peek: char, matched: Token, not_matched: Token) -> Option<Token> {
+    //     if self.is_peeking(&if_peek) {
+    //         self.next();
+    //         Some(matched)
+    //     } else {
+    //         Some(not_matched)
+    //     }
+    // }
 
     /// 識別子を読み込む
     fn identifier(&mut self) -> Option<Token> {

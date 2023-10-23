@@ -255,6 +255,7 @@ impl Parser {
 
         if self.is_peek(&Token::Reserved(Reserved::Else)) {
             self.next();
+            self.next();
             else_block = self.parse_block();
         }
 
